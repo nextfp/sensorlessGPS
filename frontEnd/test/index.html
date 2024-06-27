@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <button type="button" id="stop">stop</button>
+    <p id="latitude"></p>
+    <p id="longitude"></p>
+    <p id="speed"></p>
+
+    <script>
+      let watchID;
+
+      const options = {
+        enableHighAccuracy: true, // 位置情報の精度を高める
+        timeout: 100, // タイムアウトまでの時間（ミリ秒）
+        maximumAge: 0, // キャッシュされた位置情報の最大年齢
+      };
+      watchID = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude, speed } = position.coords;
+          document.getElementById("latitude").textContent =
+            "latitude: " + latitude;
+          document.getElementById("longitude").textContent =
+            "longitude: " + longitude;
+          document.getElementById("speed").textContent = "speed: " + speed;
+        },
+        null,
+        options
+      );
+
+      document.getElementById("stop").addEventListener("click", () => {
+        navigator.geolocation.clearWatch(watchID);
+      });
+    </script>
+  </body>
+</html>
