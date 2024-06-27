@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SensorLess GPS FrontEND</title>
+    <style>
+      #messageLog {
+        height: 200px; /* 高さを固定 */
+        overflow-y: auto; /* 縦方向のオーバーフロー時にスクロールバーを表示 */
+        margin-top: 0;
+      }
+      #messageArea {
+        border: 2px solid #000;
+        border-radius: 15px;
+        padding: 0px 10px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <button type="button" id="connect-ble">connect-ble</button>
+    <button type="button" id="stop">stop</button>
+
+    <div id="messageArea">
+      <div id="messageLog"></div>
+    </div>
+
+    <script>
+      const kUARTServiceUUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+      const kTXCharacteristicUUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
+      const kRXCharacteristicUUID = "beb5483f-36e1-4688-b7f5-ea07361b26a8";
+
+      let device;
+      let server;
+      let service;
+      let characteristicRx;
+      let characteristicTx;
+      let messageLog = [];
+      let watchID;
+
+      const readData = async (characteristic) => {
+        const ary = [];
+        const value = await characteristic.readValue();
+        ary.push(new TextDecoder().decode(value));
+
+        // 特性値が変更されたときのイベントリスナーを追加
+        characteristic.addEventListener(
+          "characteristicvaluechanged",
+          (event) => {
+            messageLog.push(new TextDecoder().decode(event.target.value));
+            document.getElementById("messageLog").innerText =
+              messageLog.join("\n");
+          }
+        );
+
+        // 通知を開始
+        await characteristic.startNotifications();
+      };
+
+      document.getElementById("connect-ble").addEventListener("click", () => {
+        watchID = navigator.geolocation.watchPosition((position) => {
+          const { latitude, longitude } = position.coords;
+          const text = String(latitude) + "," + String(longitude);
+          if (server) {
+            sendData(text);
+          }
+        });
+        sendData("Hello, BLE!");
+      });
+
+      document.getElementById("stop").addEventListener("click", () => {
+        navigator.geolocation.clearWatch(watchID);
+      });
+
+      const sendData = async (message) => {
+        if (!device) {
+          try {
+            device = await navigator.bluetooth.requestDevice({
+              filters: [{ services: [kUARTServiceUUID] }],
+            });
+            device.addEventListener("gattserverdisconnected", async () => {
+              server = undefined;
+              service = undefined;
+              characteristicRx = undefined;
+              characteristicTx = undefined;
+              await initBle();
+            });
+            initBle();
+          } catch (error) {
+            console.log("Error: " + error);
+            return;
+          }
+        }
+
+        let encoder = new TextEncoder();
+        let data = encoder.encode(message);
+
+        try {
+          await characteristicTx.writeValue(data);
+        } catch (error) {
+          console.log("Error: " + error);
+        }
+      };
+
+      const initBle = async () => {
+        server = await device.gatt.connect();
+        service = await server.getPrimaryService(kUARTServiceUUID);
+        characteristicTx = await service.getCharacteristic(
+          kTXCharacteristicUUID
+        );
+        characteristicRx = await service.getCharacteristic(
+          kRXCharacteristicUUID
+        );
+        readData(characteristicRx);
+      };
+    </script>
+  </body>
+</html>
