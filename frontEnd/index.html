@@ -22,6 +22,9 @@
     <button type="button" id="connect-ble">connect-ble</button>
     <button type="button" id="stop">stop</button>
 
+    <p id="latitude"></p>
+    <p id="longitude"></p>
+    <p id="speed"></p>
     <div id="messageArea">
       <div id="messageLog"></div>
     </div>
@@ -38,6 +41,11 @@
       let characteristicTx;
       let messageLog = [];
       let watchID;
+      const options = {
+        enableHighAccuracy: true, // 位置情報の精度を高める
+        timeout: 100, // タイムアウトまでの時間（ミリ秒）
+        maximumAge: 0, // キャッシュされた位置情報の最大年齢
+      };
 
       const readData = async (characteristic) => {
         const ary = [];
@@ -59,13 +67,27 @@
       };
 
       document.getElementById("connect-ble").addEventListener("click", () => {
-        watchID = navigator.geolocation.watchPosition((position) => {
-          const { latitude, longitude } = position.coords;
-          const text = String(latitude) + "," + String(longitude);
-          if (server) {
-            sendData(text);
-          }
-        });
+        watchID = navigator.geolocation.watchPosition(
+          (position) => {
+            const { latitude, longitude, speed } = position.coords;
+            const text =
+              String(latitude) +
+              "," +
+              String(longitude) +
+              "," +
+              String(speed || 0);
+            if (server) {
+              sendData(text);
+            }
+            document.getElementById("latitude").textContent =
+              "latitude: " + latitude;
+            document.getElementById("longitude").textContent =
+              "longitude: " + longitude;
+            document.getElementById("speed").textContent = "speed: " + speed;
+          },
+          null,
+          options
+        );
         sendData("Hello, BLE!");
       });
 
