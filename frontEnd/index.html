@@ -70,6 +70,7 @@
         watchID = navigator.geolocation.watchPosition(
           (position) => {
             const { latitude, longitude, speed } = position.coords;
+            speed = (speed * 3600) / 1000;
             const text =
               String(latitude) +
               "," +
