@@ -69,7 +69,7 @@
       document.getElementById("connect-ble").addEventListener("click", () => {
         watchID = navigator.geolocation.watchPosition(
           (position) => {
-            const { latitude, longitude, speed } = position.coords;
+            let { latitude, longitude, speed } = position.coords;
             speed = (speed * 3600) / 1000;
             const text =
               String(latitude) +
